@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Organigramas de Equipos — SEJDI</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f4f6f9; color: #1a1a2e; min-height: 100vh; }
+  .app-header { background: #1a1a2e; color: #fff; padding: 18px 28px; display: flex; align-items: center; gap: 16px; }
+  .app-header h1 { font-size: 17px; font-weight: 600; letter-spacing: .3px; }
+  .app-header span { font-size: 12px; color: #9ca3af; margin-left: auto; }
+  .nav-bar { background: #fff; border-bottom: 1px solid #e5e7eb; padding: 12px 28px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .nav-bar label { font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: .5px; margin-right: 4px; }
+  .sector-btn { padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1.5px solid #d1d5db; background: #fff; color: #374151; transition: all .15s; }
+  .sector-btn:hover { border-color: #6366f1; color: #6366f1; }
+  .sector-btn.active-si  { background: #eff6ff; color: #1d4ed8; border-color: #93c5fd; }
+  .sector-btn.active-edu { background: #f0fdf4; color: #15803d; border-color: #86efac; }
+  .sector-btn.active-sal { background: #fff7ed; color: #c2410c; border-color: #fdba74; }
+  .proj-bar { background: #f9fafb; border-bottom: 1px solid #e5e7eb; padding: 10px 28px; display: flex; gap: 6px; flex-wrap: wrap; min-height: 44px; }
+  .proj-pill { padding: 4px 12px; border-radius: 6px; font-size: 11.5px; cursor: pointer; border: 1px solid #e5e7eb; background: #fff; color: #4b5563; transition: all .12s; white-space: nowrap; }
+  .proj-pill:hover { border-color: #9ca3af; color: #111827; }
+  .proj-pill.active { background: #1a1a2e; color: #fff; border-color: #1a1a2e; font-weight: 500; }
+  .main { padding: 24px 28px; overflow-x: auto; }
+  .placeholder { text-align: center; padding: 60px 20px; color: #9ca3af; font-size: 14px; }
+  .proj-header { margin-bottom: 20px; }
+  .proj-header h2 { font-size: 18px; font-weight: 600; color: #111827; }
+  .proj-header .meta { font-size: 12px; color: #6b7280; margin-top: 4px; display: flex; gap: 14px; flex-wrap: wrap; }
+  .org-tree { display: flex; flex-direction: column; align-items: center; }
+  .top-node { border-radius: 10px; padding: 14px 20px; text-align: center; min-width: 260px; max-width: 360px; border: 1.5px solid; }
+  .top-node.gerente   { background: #eff6ff; border-color: #3b82f6; }
+  .top-node.encargado { background: #fffbeb; border-color: #f59e0b; }
+  .top-node.vacant    { background: #f9fafb; border-color: #d1d5db; }
+  .top-node .role-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .6px; opacity: .65; margin-bottom: 5px; }
+  .top-node.gerente   .role-label { color: #1d4ed8; }
+  .top-node.encargado .role-label { color: #b45309; }
+  .top-node.vacant    .role-label { color: #9ca3af; }
+  .top-node .full-name { font-size: 13px; font-weight: 600; color: #111827; line-height: 1.35; margin-bottom: 7px; }
+  .top-node.vacant .full-name { color: #9ca3af; font-style: italic; }
+  .top-node .contact-row { display: flex; align-items: center; justify-content: center; gap: 5px; font-size: 11px; color: #4b5563; margin-top: 3px; }
+  .top-node .contact-row svg { flex-shrink: 0; opacity: .6; }
+  .vline { width: 2px; height: 24px; background: #d1d5db; margin: 0 auto; }
+  .team-grid { display: grid; gap: 10px 8px; justify-content: center; }
+  .member-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px 12px; width: 186px; transition: border-color .12s, box-shadow .12s; }
+  .member-card:hover { border-color: #9ca3af; box-shadow: 0 2px 6px rgba(0,0,0,.06); }
+  .mc-name  { font-size: 11px; font-weight: 600; color: #111827; line-height: 1.35; margin-bottom: 3px; }
+  .mc-role  { font-size: 10px; color: #6b7280; line-height: 1.35; margin-bottom: 5px; }
+  .mc-badge { display: inline-block; font-size: 9px; padding: 1px 6px; border-radius: 10px; font-weight: 600; }
+  .mc-badge.cas { background: #dcfce7; color: #15803d; }
+  .mc-badge.os  { background: #f3f4f6; color: #6b7280; }
+  .mc-contact { border-top: 1px solid #f3f4f6; margin-top: 6px; padding-top: 6px; }
+  .mc-cline { display: flex; align-items: flex-start; gap: 5px; font-size: 10px; color: #6b7280; line-height: 1.4; margin-top: 2px; word-break: break-all; }
+  .mc-cline svg { flex-shrink: 0; margin-top: 1px; opacity: .55; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 11px; color: #6b7280; margin-top: 24px; padding-top: 16px; border-top: 1px solid #e5e7eb; }
+  .legend-item { display: flex; align-items: center; gap: 5px; }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+  <h1>Organigramas de Equipos de Trabajo — SEJDI</h1>
+  <span>Datos verificados · R002</span>
+</header>
+
+<nav class="nav-bar">
+  <label>Sector</label>
+  <button class="sector-btn" onclick="setSector('SI')"  id="btn-SI">Soluciones Integrales</button>
+  <button class="sector-btn" onclick="setSector('EDU')" id="btn-EDU">Educación</button>
+  <button class="sector-btn" onclick="setSector('SAL')" id="btn-SAL">Salud</button>
+</nav>
+
+<div class="proj-bar" id="proj-bar"></div>
+<main class="main" id="main">
+  <div class="placeholder"><p>Selecciona un sector y luego un proyecto</p></div>
+</main>
+
+<script>
+const iP = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 11.8a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 6 6l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`;
+const iM = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>`;
+
+const DATA = {
+  "SI": {
+    label: "Soluciones Integrales",
+    projects: {
+      "P11 R07 LACRAMARCA": [
+        {n:"LUPERDI MENDOZA JOSE GIOVANNY RAMON",p:"GERENTE DE PROYECTO",m:"CAS",t:"948870343",c:"jluperdi@anin.gob.pe"},
+        {n:"OBREGON FLORES RONALD RICARDO",p:"ADMINISTRADOR DE CONTRATOS",m:"CAS",t:"901381127",c:"robregon@anin.gob.pe"},
+        {n:"CARRILLO CASIMIRO JESUS YONATHAN",p:"ASISTENTE ADMINISTRATIVO",m:"OS",t:"982 305 781",c:"dime_50@anin.gob.pe"},
+        {n:"SICHE LOPEZ IRVIN EDENSON",p:"ESPECIALISTA EN PLANEAMIENTO",m:"OS",t:"960 209 924",c:"dime_53@anin.gob.pe"},
+        {n:"MORENO ENRIQUEZ YNGRID MELANY",p:"ESPECIALISTA PREDIAL",m:"OS",t:"935 939 678",c:"dime_49@anin.gob.pe"},
+        {n:"GUERRERO RODRIGUEZ IRWIN GERMAN",p:"ESPECIALISTA AMBIENTAL",m:"OS",t:"981 902 855",c:"dime_54@anin.gob.pe"},
+        {n:"PESANTES VASQUEZ AMPARO ELIZABETH",p:"ESPECIALISTA EN COSTOS",m:"OS",t:"969 524 000",c:"dime_598@anin.gob.pe"},
+        {n:"SALAS HUAMAN JORDY",p:"ASISTENTE DE PROYECTO",m:"OS",t:"969 524 000",c:"dime_599@anin.gob.pe"},
+        {n:"SANTAMARIA CAJUSOL VICTORIANO",p:"GESTOR DE OBRA",m:"OS",t:"969 141 673",c:"dime_601@anin.gob.pe"},
+        {n:"CASTILLO FERNANDEZ VICTOR EDUARDO",p:"ESPECIALISTA EN RIESGOS",m:"OS",t:"943 661 472",c:"dime_602@anin.gob.pe"},
+        {n:"NARCISO AGUILAR BRENDA KATHERINE",p:"CONTROL DOCUMENTARIO",m:"OS",t:"944 937 384",c:"dime_156@anin.gob.pe"},
+        {n:"BURGOS PINEDA BRYAN ALONSO",p:"CIERRE COMERCIAL TÉCNICO",m:"OS",t:"957 340 744",c:"dime_164@anin.gob.pe"},
+        {n:"FERNANDEZ VILLENA PEDRO CESAR",p:"GESTOR DE OBRA",m:"OS",t:"902603510",c:"dime_995@anin.gob.pe"},
+        {n:"ADRIANZEN CARREÑO EDWAR ALBERTO",p:"GESTOR DE OBRA",m:"OS",t:"931879783",c:"dime_1004@anin.gob.pe"},
+      ],
+      "PQ 1 QUEBRADA SAN IDELFONSO Y SAN CARLOS": [
+        {n:"SAUL STANY TORRES ROMERO",p:"GERENTE DE PROYECTO",m:"CAS",t:"975 555 070",c:"storres@anin.gob.pe"},
+        {n:"REMON CHAMBERGO JUAN VIRGILIO",p:"ADMINISTRADOR DE CONTRATO",m:"CAS",t:"955840433",c:"jremonc@anin.gob.pe"},
+        {n:"SILVA RAMIREZ ERIKA ROSALINA",p:"CONTROL DOCUMENTARIO",m:"CAS",t:"929 217 404",c:"esilva@anin.gob.pe"},
+        {n:"VEGA GARCIA MIGUEL ANGEL",p:"ASISTENTE DE PROYECTO",m:"OS",t:"987857764",c:"dime_461@anin.gob.pe"},
+        {n:"SUQUILANDA ZAPATA CLAUDIA NOELIA",p:"ADMINISTRATIVA",m:"OS",t:"944923733",c:"dime_24@aning.gob.pe"},
+        {n:"ESPINOZA CARRANZA CINTHIA DANNITXA",p:"ESPECIALISTA EN INVERSIONES",m:"OS",t:"972831549",c:"dime_755@anin.gob.pe"},
+        {n:"SORALUZ LUZQUIÑOS JUAN JOSE",p:"ESPECIALISTA SOCIAL",m:"OS",t:"972867667",c:"dime_751@anin.gob.pe"},
+        {n:"ZIRENA ROJAS JOSE RICARDO",p:"ESPECIALISTA DE RIESGOS",m:"OS",t:"926601130",c:"dime_276@anin.gob.pe"},
+        {n:"CUBAS SANCHEZ JORGE LUIS",p:"CIERRE COMERCIAL",m:"OS",t:"969063598",c:"dime_277@anin.gob.pe"},
+        {n:"ALFARO MIRANDA EDDA FERNANDA",p:"APOYO CIERRE COMERCIAL",m:"OS",t:"968357504",c:"dime_45@anin.gob.pe"},
+        {n:"COLCHADO CERDAN LADIESKA ULIANOVA",p:"GESTION PREDIAL- INTERFERENCIAS",m:"OS",t:"945393179",c:"dime_37@anin.gob.pe"},
+        {n:"ZURITA FERNANDEZ JEAN CARLOS",p:"PLANEAMIENTO",m:"OS",t:"984 576 944",c:"dime_47@anin.gob.pe"},
+        {n:"MANAYAY CALDERON ELOY",p:"GERENTE DE SITIO",m:"OS",t:"950035506",c:"dime_274@anin.gob.pe"},
+        {n:"TELLO CHIONG JULIO CARLOS",p:"GESTOR DE OBRA",m:"OS",t:"985403790",c:"dime_275@anin.gob.pe"},
+        {n:"MARIÑOS MEDINA JAIME FRANK IRVING",p:"GESTOR DE OBRA",m:"OS",t:"948331858",c:"dime_648@anin.gob.pe"},
+        {n:"ALDANA ELERA JOSE HERIBERTO",p:"GESTOR DE OBRA",m:"OS",t:"979461317",c:"dime_848@anin.gob.pe"},
+        {n:"MORALES GARCIA LENNIN ROY",p:"CONTROLADOR DE OBRA / METRADOR",m:"OS",t:"950032844",c:"dime_280@anin.gob.pe"},
+        {n:"NAJARRO IBARRA PIERO DAVID",p:"CONTROLADOR DE OBRA",m:"OS",t:"995600994",c:"dime_282@anin.gob.pe"},
+        {n:"OCHOA LIMAY NILSS",p:"COSTOS",m:"OS",t:"962278970",c:"dime_121@anin.gob.pe"},
+        {n:"QUISPE SALAZAR SERGIO NICOLA",p:"GESTOR DE OBRA",m:"OS",t:"971858741",c:"dime_1053@anin.gob.pe"},
+        {n:"ROJAS GARCIA LUIS RAUL",p:"GESTOR DE OBRA",m:"OS",t:"915064762",c:"dime_1054@anin.gob.pe"},
+        {n:"MORALES QUISPE JORGE LUIS",p:"ESPECIALISTA LEGAL",m:"OS",t:"943 846 796",c:"dime_44@anin.gob.pe"},
+        {n:"ALEXANDER IDROGO TORRES",p:"LEGAL CONTROVERSIAS",m:"OS",t:"919166209",c:"dime_1105@anin.gob.pe"},
+        {n:"BEKER ESMIT GASPAR RUIZ",p:"SUMISIONES",m:"OS",t:"939229667",c:"dime_1106@anin.gob.pe"},
+        {n:"VASQUEZ NAVARRETE MANUEL GERMAN",p:"ESPECIALISTA DE COSTOS",m:"CAS",t:"979854043",c:"mvasquez@anin.gob.pe"},
+      ],
+      "PQ 14 Q-02 QUEBRADA EL LEON": [
+        {n:"DELGADO ALARCON JORGE VICTOR",p:"GERENTE DE PROYECTO",m:"CAS",t:"944207844",c:"jdelgado@anin.gob.pe"},
+      ],
+      "PQ 15 SAT": [
+        {n:"ACHAHUANCO ENCISO DEISY",p:"GERENTE DE PROYECTO",m:"CAS",t:"942856448",c:"dachahuanco@anin.gob.pe"},
+        {n:"LEXMAR ALBERTO PÉREZ VÁSQUEZ",p:"EVALUACION ECONOMICA",m:"OS",t:"986140678",c:"dime_1099@anin.gob.pe"},
+        {n:"JULIO ANDRE ROJAS RIOS",p:"METEOROLGO",m:"OS",t:"912 111 862",c:"dime_1103@anin.gob.pe"},
+        {n:"MALLMA BREÑA CHRISTIAN",p:"TEANSMISION DE DATOS",m:"OS",t:"967685344",c:"dime_1087@anin.gob.pe"},
+        {n:"SOTO CONDE MARCO ANTONIO",p:"PLANEAMIENTO",m:"OS",t:"945129886",c:"dime_906@anin.gob.pe"},
+        {n:"DOMINGUEZ AREVALO JUAN DIEGO",p:"CONTROL DOCUMENTARIO",m:"CAS",t:"990 299 329",c:"jdominguez@anin.gob.pe"},
+        {n:"LAZO PEREZ ANA MARIA",p:"ADMINISTRADOR DE CONTRATOS",m:"CAS",t:"996836431",c:"alazo@anin.gob.pe"},
+        {n:"CANDIA FLORES ABIGAIL",p:"ESPECIALISTA LEGAL",m:"OS",t:"958622807",c:"dime_905@anin.gob.pe"},
+        {n:"CARO-SANCHEZ GAGO GABRIEL LEVÍ",p:"ESPECIALISTA METEOROLOGA",m:"OS",t:"962737744",c:"dime_939@anin.gob.pe"},
+        {n:"FRANCO GALLO ANNY SHIRLEY",p:"HIDROMETEOROLOGO",m:"OS",t:"999808437",c:"dime_1003@anin.gob.pe"},
+        {n:"MORENO TAPIA MARCO ANDRES",p:"GIS Y GESTION DE RIESGOS",m:"OS",t:"991421708",c:"dime_944@anin.gob.pe"},
+        {n:"ARAUJO CUEVA JORGE IVAN",p:"GESTOR DE OBRA ICA",m:"OS",t:"945 055 194",c:"dime_1029@anin.gob.pe"},
+        {n:"AUCARURI INGA MIGUEL FLORENCIO",p:"SITE MANAGER",m:"OS",t:"999932535",c:"dime_1058@anin.gob.pe"},
+        {n:"MUSAYÓN GONZALES GIANFRANCO BRIAN",p:"COSTOS",m:"OS",t:"991526686",c:"dime_1048@anin.gob.pe"},
+        {n:"MENDOZA PALOMINO DORCAS",p:"ADMINISTRATIVO",m:"OS",t:"978429730",c:"dime_1066@anin.gob.pe"},
+        {n:"SARCA CÁRDENAS LEIDY PATRICIA",p:"INVERSION PUBLICA",m:"OS",t:"983 720 588",c:"dime_1068@anin.gob.pe"},
+        {n:"HERNÁNDEZ BERNALES JOSÉ GILMER",p:"GESTOR DE OBRA",m:"OS",t:"944-966563",c:"dime_1076@anin.gob.pe"},
+        {n:"SANTOS ESTEBAN SALVATIERRA ALTAMIRANO",p:"TELECOMUNICACIONES",m:"OS",t:"966023222",c:"dime_1075@anin.gob.pe"},
+      ],
+      "PQ 2 RÍO TUMBES": [
+        {n:"PISCOYA QUEVEDO JULIO CESAR ALEXANDER",p:"GERENTE DE PROYECTO",m:"CAS",t:"995836683",c:"jpiscoya@anin.gob.pe"},
+        {n:"VEGA CHICCHON LUIS EDUARDO",p:"ESPECIALSITA DE COSTOS",m:"CAS",t:"968497115",c:"lvega@anin.gob.pe"},
+        {n:"ABAD GOMEZ ALEXY MILUSKA",p:"CONTROL DE PROYECTOS",m:"OS",t:"914584588",c:"dime_14@anin.gob.pe"},
+        {n:"MALPICA YNFANTE RICK MANUEL ARMANDO",p:"ASISTENTE ADMINISTRATIVO",m:"OS",t:"982414587",c:"dime_854@anin.gob.pe"},
+        {n:"ROSALES BRIONES FERNANDO",p:"ESPECIALSITA BIM",m:"OS",t:"987794619",c:"dime_850@anin.gob.pe"},
+        {n:"DIAZ SANCHEZ ROBERTO CARLOS",p:"ADMINISTRADOR DE CONTRATOS",m:"OS",t:"906774474",c:"dime_849@anin.gob.pe"},
+        {n:"CAMPOS AVELLANEDA JUAN CARLOS",p:"GESTOR DE OBRA",m:"OS",t:"986288377",c:"dime_567@anin.gob.pe"},
+        {n:"BARRETO PILLCO VRAHADT ISAÍAS",p:"ESPECIALISTA LEGAL",m:"OS",t:"976365352",c:"dime_12@anin.gob.pe"},
+        {n:"VELASQUEZ DAMIANO LUIS ALBERTO",p:"ESPECIALISTA EN PLANEAMIENTO",m:"OS",t:"992399971",c:"dime_16@anin.gob.pe"},
+        {n:"WILSON GENARO BARRETO SILVA",p:"CIERRE COMERCIAL",m:"OS",t:"913042556",c:"dime_1098@anin.gob.pe"},
+        {n:"LUIS ALBERTO SANCHEZ CUEVA",p:"MEDIO AMBIENTE",m:"OS",t:"949 560 350",c:"dime_1117@anin.gob.pe"},
+        {n:"ESCALANTE LUDEÑA MIGUEL",p:"DISEÑO",m:"OS",t:"990 891 712",c:""},
+      ],
+      "PQ 20 Q-03 QUEBRADA CANSAS": [
+        {n:"CHUSPE BAZALAR CESAR AUGUSTO",p:"GERENTE PROYECTO",m:"CAS",t:"954 802 446",c:"cchuspe@anin.gob.pe"},
+        {n:"ARROYO SALGADO JANNEYDE DEYLITH",p:"CONTROL DOCUMENTARIO",m:"CAS",t:"991186667",c:"jarroyo@anin.gob.pe"},
+        {n:"ALONZO LUNA GEANCARLOS MIGUEL ANGEL",p:"ESPECIALISTA DE COSTOS",m:"OS",t:"972923436",c:"dime_856@anin.gob.pe"},
+        {n:"VALDIVIA ZAMORA MARIA CECILIA",p:"GESTION ADMINISTRATIVA",m:"OS",t:"951752666",c:"dime_957@anin.gob.pe"},
+        {n:"LARA PEREZ SAUL FELIX",p:"JEFE DE FRENTE PQ03 Y PQ05",m:"OS",t:"945341674",c:"dime_791@anin.gob.pe"},
+        {n:"MIRANDA GUTIERREZ LUIS ADOLFO",p:"ESPECIALISTA HIDRAULICO",m:"OS",t:"981188354",c:"dime_400@anin.gob.pe"},
+        {n:"ACUÑA PEREZ CRISTIAN MAX",p:"ADM DE CONTRATO",m:"OS",t:"943 079 018",c:"dime_936@anin.gob.pe"},
+        {n:"ALARCON PEREZ CESAR ANTONIO",p:"DISEÑO",m:"OS",t:"981790200",c:"dime_967@anin.gob.pe"},
+        {n:"BECERRA PEÑA MIGUEL ANGEL",p:"GESTOR DE OBRA",m:"OS",t:"938586370",c:"dime_966@anin.gob.pe"},
+        {n:"CERVANTES ABARCA ROBERT ENRIQUE",p:"JEFE DE CAMPO",m:"OS",t:"985097254",c:"dime_968@anin.gob.pe"},
+        {n:"LAZO CASTILLÓN FREDY EDGARD",p:"PLANEAMIENTO",m:"OS",t:"989397640",c:"dime_60@anin.gob.pe"},
+        {n:"BRICEÑO RIVADENEYRA ELVIS EDUARDO",p:"GESTION PREDIAL",m:"OS",t:"987242166",c:"dime_624@anin.gob.pe"},
+      ],
+      "PQ 21 Q-04 QUEBRADA HUAYCOLORO": [
+        {n:"ALVAREZ LARA JUAN ELADIO",p:"ESPECIALISTA COSTOS",m:"CAS",t:"952-971-811",c:"jalvarez@anin.gob.pe"},
+        {n:"AYALA ARMAS JUAN ANDRES",p:"CONTROL DOCUMENTARIO ACONEX",m:"OS",t:"968-782-369",c:"dime_73@anin.gob.pe"},
+        {n:"TORRES MONZON CATHERINE DIANA",p:"ASISTENTE ADMINISTRATIVO",m:"OS",t:"987-753-740",c:"dime_72@anin.gob.pe"},
+        {n:"SAAVEDRA RIOS KARINA",p:"ESPECIALISTA PREDIAL",m:"OS",t:"995-340-835",c:"dime_71@anin.gob.pe"},
+        {n:"ALEGRE LOPEZ CESAR FERNANDO",p:"GESTOR DE OBRA",m:"OS",t:"942-606-420",c:"dime_74@anin.gob.pe"},
+        {n:"GARCIA VIVANCO FANNY CATALINA",p:"ESPECIALISTA II OBRAS CIVILES",m:"CAS",t:"988-609-842",c:"fgarcia@anin.gob.pe"},
+        {n:"VARJE ESTEBAN LYDDON BENI",p:"ADMINISTRADOR DE CONTRATO",m:"CAS",t:"920 782 929",c:"lvarje@anin.gob.pe"},
+        {n:"GLORIA VIVIANA MENDIZABAL VILLEGAS",p:"GERENTE DE PROYECTO (E)",m:"CAS",t:"984 774 720",c:"gmendizabal@anin.gob.pe"},
+      ],
+      "PQ 27 D-06 DRENAJE TALARA": [
+        {n:"AZAÑERO CENTURION CARLOS ALBERTO",p:"GERENTE DE PROYECTO",m:"CAS",t:"916037574",c:"cazanero@anin.gob.pe"},
+        {n:"CONCEPCION CCORAHUA ALDO",p:"ESPECIALISTA EN DISEÑO HIDRAÚLICO",m:"CAS",t:"910281172",c:"aconcepcion@anin.gob.pe"},
+        {n:"IPANAQUE ABAD JOHN JAIRO FRANCISCO",p:"ASISTENTE DE CONTROL DOCUMENTARIO",m:"CAS",t:"967980343",c:"ipanaque@anin.gob.pe"},
+        {n:"PEREZ MARIN DURBYS GERALDINE",p:"ESPECIALISTA DE COSTOS",m:"OS",t:"938745586",c:"dime_413@anin.gob.pe"},
+        {n:"CHINCHIHUALPA MARQUEZ JORGE LUIS",p:"ESPECIALISTA DE PLANEAMIENTO",m:"OS",t:"984969852",c:"dime_100@anin.gob.pe"},
+        {n:"HOLGUIN GARCIA DARLY VICTORIA",p:"ESPECIALISTA LEGAL",m:"OS",t:"968141288",c:"dime_628@anin.gob.pe"},
+        {n:"ARROYO ANCHANTE MAYRA ALEJANDRA",p:"ASISTENTE DE PROYECTO",m:"OS",t:"974945731",c:"dime_107@anin.gob.pe"},
+        {n:"TRONCOS SAAVEDRA GILMAR CARLOS ALBERTO",p:"ESPECIALISTA RIESGOS",m:"OS",t:"935848324",c:"dime_855@anin.gob.pe"},
+        {n:"LEON OBALLE MARIA ISABEL",p:"ASISTENTE ADMINISTRATIVO",m:"OS",t:"986428660",c:"dime_874@anin.gob.pe"},
+        {n:"AGUILAR MARCHENA OMAR ALEX",p:"ESPECIALISTA PRESUPUESTOS",m:"OS",t:"978072357",c:"dime_873@anin.gob.pe"},
+        {n:"NEYRA CAMPOS JUAN FERNANDO",p:"COORDINADOR DE DISEÑO",m:"OS",t:"956267135",c:"dime_119@anin.gob.pe"},
+        {n:"AGUILAR MUÑOZ CARLOS GUILLERMO",p:"ESPECIALISTA BIM",m:"OS",t:"950501040",c:"dime_917@anin.gob.pe"},
+        {n:"MARIN CHAVEZ CARLOS MIGUEL",p:"ADMINISTRADOR DE CONTRATOS",m:"OS",t:"946862458",c:"dime_145@anin.gob.pe"},
+        {n:"GRANDA NOLE CARLOS ALBERTO",p:"GESTOR DE OBRA",m:"OS",t:"968084892",c:"dime_212@anin.gob.pe"},
+        {n:"ANGULO FLORES VICTOR ALFREDO",p:"INVERSION PUBLICA",m:"OS",t:"965311163",c:"dime_948@anin.gob.pe"},
+        {n:"BRIONES VELASQUEZ JAVIER ALEJANDRO",p:"INGENIERO DE CAMPO",m:"OS",t:"920023330",c:"dime_233@anin.gob.pe"},
+        {n:"MEJIA MASIAS VERONICA VIOLETA",p:"LIBERACION DE INTERFERENCIAS",m:"OS",t:"969851655",c:"dime_950@anin.gob.pe"},
+      ],
+      "PQ 3 R-16 RÍOS MOTUPE LA LECHE": [
+        {n:"ESPINOZA ABARCA MIJAIL JOHEL",p:"GERENTE PROYECTO",m:"CAS",t:"948293200",c:"mespinozaa@anin.gob.pe"},
+        {n:"BANCES SANDOVAL PAULA CLARIBEL",p:"CONTROL DOCUMENTARIO",m:"CAS",t:"927635228",c:"pbances@anin.gob.pe"},
+        {n:"BARRANTES ALBERCA SHEYLLA VANESSA",p:"ESPECIALISTA EN COSTOS",m:"CAS",t:"978191350",c:"sbarrantes@anin.gob.pe"},
+        {n:"MALDONADO OLIVA JUAN ERNESTO",p:"ADMINISTRADOR DE CONTRATO",m:"CAS",t:"978158583",c:"jmaldonado@anin.gob.pe"},
+        {n:"OROZCO RAMIREZ WILLIAN ORESTES",p:"OBRAS CIVILES",m:"CAS",t:"952828363",c:"worozco@anin.gob.pe"},
+        {n:"MILLONES COLLAZOS JAVIER EDUARDO",p:"OBRAS HIDRAÚLICAS",m:"OS",t:"978 800 014",c:"dime_17@anin.gob.pe"},
+        {n:"SANCHEZ BALCAZAR YOVANY",p:"CONTRALORÍA Y RIESGOS",m:"OS",t:"962 771 039",c:"dime_21@anin.gob.pe"},
+        {n:"VILLACORTA AVALOS CARLOS EDUARDO",p:"INVERSIONES",m:"OS",t:"975707714",c:"dime_347@anin.gob.pe"},
+        {n:"AMAYA ARROYO YAZMIN CAROLINA",p:"SOCIAL",m:"OS",t:"973282188",c:"dime_447@anin.gob.pe"},
+        {n:"MUNDACA TANTALEAN MONICA MILAGROS",p:"ADMINISTRADOR DE CONTRATO",m:"OS",t:"979170621",c:"dime_289@anin.gob.pe"},
+        {n:"COLLANTES YUPANQUI EWDIS MARLON",p:"MONITOR DE OBRA",m:"OS",t:"992709388",c:"dime_829@anin.gob.pe"},
+        {n:"RENTERIA ADRIANZEN VIVIANA",p:"TECNICO PREDIAL",m:"OS",t:"956722043",c:"dime_935@anin.gob.pe"},
+        {n:"BARANDIARAN MEOÑO AMADO MIGUEL",p:"ASISTENTE TECNICO PREDIAL",m:"OS",t:"926042700",c:"dime_953@anin.gob.pe"},
+        {n:"TRONCOS RODRIGUEZ OSCAR ALBERTO",p:"GESTOR DE OBRA",m:"OS",t:"968181838",c:"dime_40@anin.gob.pe"},
+        {n:"AGUIRRE ZEVALLOS SAULO",p:"ADMINISTRADOR DE CONTRATO",m:"OS",t:"991913558",c:"dime_605@anin.gob.pe"},
+      ],
+      "PQ 33 P4 INFRAESTRUCTURA NATURAL CHICAMA": [
+        {n:"ESPINOZA ABARCA MIJAIL JOHEL",p:"GERENTE PROYECTO",m:"CAS",t:"948293200",c:"mespinozaa@anin.gob.pe"},
+        {n:"VALDEZ CAMPOS JOSÉ VÍCTOR",p:"SERVICIO EN RECUPERACIÓN DE ECOSISTEMAS",m:"OS",t:"993465023",c:"dime_9@anin.gob.pe"},
+      ],
+      "PQ 4 RÍOS CASMA Y HUARMEY": [
+        {n:"FLORES PORTUGUEZ ANTONY SAMIR",p:"ESPECIALISTA DE COSTOS",m:"CAS",t:"941180552",c:"afloresp@anin.gob.pe"},
+        {n:"ORIHUELA GARCIA RAFAEL ORLANDO",p:"ADMINISTRADOR DE CONTRATOS",m:"CAS",t:"991837138",c:"rorihuela@anin.gob.pe"},
+        {n:"ORIZANO RIOS EDWARS",p:"ADMINISTRADOR DE CONTRATOS",m:"CAS",t:"962093504",c:"eorizano@anin.gob.pe"},
+        {n:"TREJO ALVARADO JAVIER ARTURO",p:"ASISTENTE DE CONTROL DOCUMENTARIO",m:"CAS",t:"964946922",c:"jtrejo@anin.gob.pe"},
+        {n:"URIBE TEJEDA HENRY HUGO",p:"GERENTE DE PROYECTO",m:"CAS",t:"995282114",c:"huribe@anin.gob.pe"},
+        {n:"GASPAR CAMPOS CARLOS ANDRES",p:"ASISTENTE ADMINISTRATIVO",m:"OS",t:"944498634",c:"dime_63@anin.gob.pe"},
+        {n:"CHILET SORIA MATEO ALEJANDRO",p:"ESPECIALISTA DE RIESGOS",m:"OS",t:"972935801",c:"dime_69@anin.gob.pe"},
+        {n:"PONTE RAMIREZ JOSE FERNANDO",p:"GESTOR DE OBRAS CIVILES",m:"OS",t:"943977398",c:"dime_67@anin.gob.pe"},
+        {n:"CADAGAN LAURA ELIO ENRIQUE",p:"ESPECIALISTA EN CIERRE COMERCIAL TECNICO - INVIERTE.PE",m:"OS",t:"935348143",c:"dime_341@anin.gob.pe"},
+        {n:"HERNANDEZ TENORIO ANGEL ANTONIO",p:"ESPECIALISTA DE PLANEAMIENTO",m:"OS",t:"908801731",c:"dime_339@anin.gob.pe"},
+        {n:"CHAVARRY RUIZ LUIS RAUL",p:"GESTOR DE OBRA PROYECTO 1 SECTOR 2 CONFLUENCIA",m:"OS",t:"982418292",c:"dime_66@anin.gob.pe"},
+        {n:"RONDON SARAVIA SUE CAROL",p:"ESPECIALISTA PREDIAL",m:"OS",t:"913044433",c:"dime_62@anin.gob.pe"},
+        {n:"BUSTINZA SANCHO SAUL ALFREDO",p:"GESTOR DE OBRA PROYECTO 2 SECTOR 2 ZONA BAJA",m:"OS",t:"951552077",c:"dime_290@anin.gob.pe"},
+        {n:"VALDEZ GUERRA PERCY MARTIN",p:"GESTOR DE OBRA",m:"OS",t:"942 628 769",c:"dime_990@anin.gob.pe"},
+        {n:"OSORES TELLO LENNY LISSETTE",p:"ESPECIALISTA SOCIAL",m:"OS",t:"979258173",c:"dime_988@anin.gob.pe"},
+        {n:"SAYAS CONTRERAS MAURTO",p:"PREDIAL",m:"OS",t:"948 859 642",c:"dime_989@anin.gob.pe"},
+      ],
+      "PQ 5 RÍOS CAÑETE Y HUAURA": [
+        {n:"ANTONIO FERNANDEZ CARLOS CESAR",p:"ESPECIALISTA EN ADMINISTRACIÓN DE CONTRATOS",m:"CAS",t:"957 397 648",c:"cantonio@anin.gob.pe"},
+        {n:"CARRASCO VALENZUELA IVAN EUDOSIO",p:"GERENTE DE PROYECTO",m:"CAS",t:"945082603",c:"icarrasco@anin.gob.pe"},
+        {n:"LLATAS CANCINO DAHLBERG DE TOURNEFORT",p:"ESPECIALISTA EN COSTOS",m:"CAS",t:"934 593 866",c:"dllatas@anin.gob.pe"},
+        {n:"VERTIZ PALOMINO KARLA ALEXANDRA",p:"CONTROL DOCUMENTARIO",m:"CAS",t:"933542551",c:"kvertiz@anin.gob.pe"},
+        {n:"TORRES CARDENAS ADRIANA MILAGROS",p:"APOYO CIERRE COMERCIAL",m:"OS",t:"934802124",c:"dime_702@anin.gob.pe"},
+        {n:"PAREDES MURGA CRISTHIAN ROBERT",p:"TECNICO EN CIERRE COMERCIAL",m:"OS",t:"982110540",c:"dime_913@anin.gob.pe"},
+        {n:"CASAFRANCA BAZAN ANDERSON GUILLERMO",p:"PLANEAMIENTO",m:"OS",t:"948788744",c:"dime_730@anin.gob.pe"},
+        {n:"IRIGOIN QUESQUEN JUAN AUGUSTO",p:"GESTION DE OBRA",m:"OS",t:"969931182",c:"dime_98@anin.gob.pe"},
+        {n:"QUINTEROS TICLE BENY BEATRIZ",p:"ADMINISTRATIVO",m:"OS",t:"940435445",c:"dime_96@anin.gob.pe"},
+        {n:"SEGURA NARVAEZ ISMENIA JACQUELINE",p:"PREDIAL",m:"OS",t:"965394852",c:"dime_498@anin.gob.pe"},
+        {n:"SALCEDO VARGAS JULIO",p:"GESTION DE OBRA",m:"OS",t:"976848095",c:"dime_500@anin.gob.pe"},
+        {n:"VASQUEZ BECERRA KADY",p:"CIERRE COMERCIAL",m:"OS",t:"990575744",c:"dime_746@anin.gob.pe"},
+        {n:"OSORIO CATURIN EDUARDO LUIS",p:"SERVICIO EN MATERIA LEGAL",m:"OS",t:"968038975",c:"dime_1065@anin.gob.pe"},
+        {n:"GOZZING FINETTI TERRY ADRIAN",p:"APOYO RIESGOS",m:"OS",t:"965753505",c:"dime_29@anin.gob.pe"},
+        {n:"GINA CAROLINA PINGO PALACIOS",p:"PLANEAMIENTO",m:"OS",t:"959551445",c:"dime_1088@anin.gob.pe"},
+        {n:"RODRIGUEZ ROMAN WILLIAM OSCAR",p:"INVERSION PUBLICA",m:"OS",t:"954174712",c:"dime_952@anin.gob.pe"},
+      ],
+      "PQ 6 RÍO MATAGENTE": [
+        {n:"CHUSPE BAZALAR CESAR AUGUSTO",p:"GERENTE PROYECTO",m:"CAS",t:"954 802 446",c:"cchuspe@anin.gob.pe"},
+        {n:"LINAJA AYALA JOSEPH PAUL",p:"ADMINISTRADOR DE CONTRATO",m:"CAS",t:"957637981",c:"jlinaja@anin.gob.pe"},
+        {n:"KARLA MERCEDES ESPINOZA HIROSE",p:"PLANEAMIENTO",m:"OS",t:"934 002 293",c:"dime_1073@anin.gob.pe"},
+        {n:"ROXY AZIZA SURICHAQUI RODRÍGUEZ",p:"ACONEX",m:"OS",t:"968227284",c:"dime_1085@anin.gob.pe"},
+        {n:"ROJAS GOMEZ WILSON TEODORO",p:"AUDITORÍA EN COSTOS",m:"OS",t:"959 795 851",c:"dime_981@anin.gob.pe"},
+        {n:"VILLAVICENCIO ALVARADO ROSA",p:"CIERRE COMERCIAL",m:"OS",t:"958547845",c:"dime_980@anin.gob.pe"},
+      ],
+      "PQ 8 R-08 RÍOS OLMOS Y ZAÑA": [
+        {n:"LUPERDI MENDOZA JOSE GIOVANNY RAMON",p:"GERENTE DE PROYECTO",m:"CAS",t:"948870343",c:"jluperdi@anin.gob.pe"},
+        {n:"INCA HERRERA ELDER JULIAN",p:"ESPECIALISTA DE PLANEAMIENTO",m:"CAS",t:"957518818",c:"einca@anin.gob.pe"},
+        {n:"SANTISTEBAN ANCAJIMA VICTOR JESUS",p:"ESPECIALISTA DE PLANEAMIENTO",m:"CAS",t:"972529047",c:"vsantisteban@anin.gob.pe"},
+        {n:"URIBE MAMANI MARYURI ELIZABETH",p:"CONTROL DOCUMENTARIO",m:"CAS",t:"938179237",c:"muribem@anin.gob.pe"},
+        {n:"BALAREZO SAAVEDRA LUIS ALONSO",p:"ESPECIALISTA BIM Y GIS",m:"OS",t:"978990762",c:"dime_401@anin.gob.pe"},
+        {n:"DIAZ CORTEZ LUIS JHUNIOR",p:"GERENTE DE SITIO",m:"OS",t:"950749829",c:"dime_898@anin.gob.pe"},
+        {n:"MENDOZA OCAÑA WILDER ALBERTO",p:"INGENIERO DE CAMPO DE OLMOS",m:"OS",t:"999598258",c:"dime_926@anin.gob.pe"},
+        {n:"RUBIO ROMERO LESLY PAMELA",p:"SOPORTE ADMINISTRATIVO",m:"OS",t:"981018348",c:"dime_494@anin.gob.pe"},
+        {n:"HUARANGA ANGULO CESAR RAIMUNDO",p:"GESTOR DE OBRA DE OLMOS",m:"OS",t:"976947863",c:"dime_493@anin.gob.pe"},
+        {n:"GONZALES MEDRANO ROCIO LIZ",p:"ESPECIALISTA DE COSTOS",m:"OS",t:"941253785",c:"dime_597@anin.gob.pe"},
+        {n:"CORONEL BENAVIDES JOSE ANTONIO",p:"ESPECIALISTA DE CIERRE COMERCIAL",m:"OS",t:"971019401",c:"dime_596@anin.gob.pe"},
+        {n:"PACORA BENITES GUILLERMO HUMBERTO",p:"ESPECIALISTA NEC",m:"OS",t:"934 602 415",c:"dime_595@anin.gob.pe"},
+        {n:"NASSI MIRENGHI GIORGIO RENATTO",p:"INGENIERO DE CAMPO",m:"OS",t:"932486223",c:"giorgio.nassi@outlook.com"},
+        {n:"QUESQUEN LLONTOP LEVI ABRAHAM",p:"ASISTENTE TECNICO DE PROYECTO",m:"OS",t:"930745155",c:"dime_801@anin.gob.pe"},
+        {n:"CESPEDES MANAYALLE HIGINIO",p:"GESTOR DE OBRA OLMOS",m:"OS",t:"969511325",c:"dime_52@anin.gob.pe"},
+        {n:"MONTOYA GOICOCHEA FLAVIO ALEXANDER",p:"RIESGOS",m:"OS",t:"932241375",c:"dime_1026@anin.gob.pe"},
+        {n:"MOZO GUILLERMO DIANA CAROLINA",p:"ESPECIALISTA PREDIAL",m:"OS",t:"922839252",c:"dime_23@anin.gob.pe"},
+      ],
+      "PQ 9 R-06 RÍOS CHICAMA Y VIRÚ": [
+        {n:"DELGADO ALARCON JORGE VICTOR",p:"GERENTE DE PROYECTO",m:"CAS",t:"944207844",c:"jdelgado@anin.gob.pe"},
+        {n:"LOPEZ DAMIAN RAUL EDUARDO",p:"ADMINISTRADOR DE CONTRATOS",m:"CAS",t:"969776689",c:"rlopez@anin.gob.pe"},
+        {n:"SAUCEDO CULQUICHICON DAVID AMADO",p:"ESPECIALISTA EN COSTOS",m:"CAS",t:"985423880",c:"dsaucedo@anin.gob.pe"},
+        {n:"MOISES GASTELO PEREZ",p:"ACONEX",m:"CAS",t:"978609058",c:"mgastelo@anin.gob.pe"},
+        {n:"SOTO CASTRO HANSELL",p:"MODELAMIENTO HIDRAULICO",m:"CAS",t:"949 179 025",c:"hsoto@anin.gob.pe"},
+        {n:"SACIGA RAMIREZ JULIAN RONALD",p:"DOCUMENT CONTROLLER",m:"OS",t:"925706202",c:"dime_34@anin.gob.pe"},
+        {n:"CABRERA NAVARRO SANDRA RAQUEL",p:"ASISTENTE ADMINISTRATIVA",m:"OS",t:"967901236",c:"dime_38@anin.gob.pe"},
+        {n:"SOTO CASTRO DIN LUI",p:"ESPECIALISTA DE PLANEAMIENTO",m:"OS",t:"949734033",c:"dime_35@anin.gob.pe"},
+        {n:"RUIZ PAREDES CARLA FABIANA",p:"ASISTENTE DE PROYECTOS",m:"OS",t:"992233710",c:"dime_270@anin.gob.pe"},
+        {n:"GARCIA CHAVARRIA HOWARD ALAN",p:"INGENIERO DE OBRAS",m:"OS",t:"968789618",c:"dime_269@anin.gob.pe"},
+        {n:"ANCCASI COA ADOLFO ERNESTO",p:"ESPECIALISTA HIDRAULICO",m:"OS",t:"954022836",c:"dime_271@anin.gob.pe"},
+        {n:"RUIZ VERGARA GONZALO ELIAZAR",p:"ESPECIALISTA EN CIERRE COMERCIAL",m:"OS",t:"961770136",c:"dime_287@anin.gob.pe"},
+        {n:"CHAVEZ SANTOS JOSE ANDONY",p:"GESTOR DE OBRA",m:"OS",t:"974843878",c:"dime_291@anin.gob.pe"},
+        {n:"ROSARIO ARMAS CHRISTIAN JESUS",p:"INGENIERO DE OBRAS",m:"OS",t:"990599627",c:"dime_902@anin.gob.pe"},
+        {n:"HERNANDEZ NEYRA DAYSI STEFANIA",p:"ESPECIALISTA EN INVERSIONES",m:"OS",t:"992556734",c:"dime_283@anin.gob.pe"},
+      ],
+      "PQ26 D05 DRENAJE SULLANA": [
+        {n:"AZAÑERO CENTURION CARLOS ALBERTO",p:"GERENTE DE PROYECTO",m:"CAS",t:"916037574",c:"cazanero@anin.gob.pe"},
+        {n:"CORDOVA ARELLANO SHARON DALLANA",p:"CONTROL DOCUMENTARIO",m:"CAS",t:"953105449",c:"scordova@anin.gob.pe"},
+        {n:"REYES VIRHUEZ CESAR ABRAHAM",p:"ESPECIALISTA ESTRUCTURAS",m:"CAS",t:"987325990",c:"dime_427@anin.gob.pe"},
+        {n:"SANDOVAL CRUZ JEISON JERIDAN",p:"ADMINISTRADOR DE CONTRATOS",m:"CAS",t:"942911878",c:"jsandoval@anin.gob.pe"},
+        {n:"DIOSES TORRES ALBERTO JHAIR",p:"ASISTENTE DE PROYECTO",m:"OS",t:"908518075",c:"dime_996@anin.gob.pe"},
+        {n:"VASQUEZ SOSA YOISY CAROLINA",p:"ESPECIALISTA SOCIAL",m:"OS",t:"958414291",c:"dime_127@anin.gob.pe"},
+        {n:"NORIEGA ALVARADO EDIXSON ARTURO",p:"ESPECIALISTA MODELAMIENTO HIDRAÚLICO",m:"OS",t:"921414828",c:"dime_823@anin.gob.pe"},
+        {n:"ROSILLO ATOCHA DIANA LETICIA ELOA",p:"ESPECIALISTA LEGAL",m:"OS",t:"958542244",c:"dime_800@anin.gob.pe"},
+        {n:"CORDOVA SAAVEDRA JESUS TORIBIO",p:"ESPECIALISTA OBRAS CIVILES",m:"OS",t:"999578475",c:"dime_869@anin.gob.pe"},
+        {n:"PAICO COELLO JOEL",p:"ESPECIALISTA GEOTECNIA",m:"OS",t:"957353997",c:"dime_868@anin.gob.pe"},
+        {n:"CORDOVA CARHUAPOMA RICHARD",p:"ESPECIALISTA DISEÑO HIDRAULICO",m:"OS",t:"968967713",c:"dime_927@anin.gob.pe"},
+        {n:"SAAVEDRA HERRERA MARCO ANTONIO",p:"INVIERTE PE",m:"OS",t:"969544804",c:"dime_123@anin.gob.pe"},
+        {n:"PEÑA BECERRA ENJHOR THAYLOR",p:"METRADOS",m:"OS",t:"952461793",c:"dime_1012@anin.gob.pe"},
+        {n:"ROBLES PAREDES RICARDO MAGNO",p:"EJECUCION DE OBRA",m:"OS",t:"949058142",c:"dime_1011@anin.gob.pe"},
+        {n:"SANDOVAL OGOÑA JIMMY GIBSON",p:"ADMINISTRATIVO",m:"OS",t:"904144546",c:"dime_1020@anin.gob.pe"},
+      ],
+    }
+  },
+  "EDU": {
+    label: "Educación",
+    projects: {
+      "01 - PIURA (12-23)": [
+        {n:"USQUIANO SOTELO SALVADOR FELIX MARTIN",p:"GERENTE DE PROYECTO (E)",m:"CAS",t:"934887876",c:"susquiano@anin.gob.pe"},
+        {n:"ARROYO SANTAMARIA WILMA",p:"ESPECIALISTA EN ADMINISTRACION DE CONTRATOS",m:"CAS",t:"988321682",c:"warroyo@anin.gob.pe"},
+      ],
+      "02 - LA LIBERTAD": [
+        {n:"USQUIANO SOTELO SALVADOR FELIX MARTIN",p:"GERENTE DE PROYECTO (E)",m:"CAS",t:"934887876",c:"susquiano@anin.gob.pe"},
+      ],
+      "06 - NUEVO CHIMBOTE": [
+        {n:"AGUILAR TORRES RODRIGO EDUARDO",p:"ESPECIALISTA EN INSTALACIONES ELÉCTRICAS",m:"OS",t:"982095308",c:"dime_354@anin.gob.pe"},
+        {n:"ANGULO GATICA LIZ ARLETH",p:"ANALISTA EN ESTRUCTURAS",m:"OS",t:"942810853",c:"dime_1027@anin.gob.pe"},
+        {n:"BEDOYA TELLO LEONEL BELMONHT",p:"GESTOR DE OBRA",m:"OS",t:"996796564",c:"dime_513@anin.gob.pe"},
+        {n:"CASTILLO SUAREZ EDUAR DUVERLI",p:"ESPECIALISTA EN CIERRE COMERCIAL",m:"OS",t:"970921008",c:"dime_517@anin.gob.pe"},
+        {n:"ROJAS ALVA DAISY ALEXIS",p:"ADMINISTRATIVA",m:"OS",t:"987475513",c:"dime_1071@anin.gob.pe"},
+        {n:"GIULIANA MARISELLA SANCHEZZ BUSTOS",p:"SOCIAL",m:"OS",t:"984086568",c:"dime_1070@anin.gob.pe"},
+        {n:"INFANTES ARBILDO NILS DENIS",p:"ESPECIALISTA LEGAL",m:"OS",t:"940437363",c:"dime_993@anin.gob.pe"},
+        {n:"MENDOZA ARANIBAR ROGER AUGUSTO",p:"ESPECIALISTA EN RIESGOS",m:"OS",t:"948634040",c:"dime_518@anin.gob.pe"},
+        {n:"MOSCOL HIDALGO KEVIN WALTER",p:"GESTOR DE OBRA",m:"OS",t:"968114075",c:"dime_154@anin.gob.pe"},
+        {n:"PALACIOS ALBA TANIA MARLENE",p:"ESPECIALISTA EN CIERRE COMERCIAL",m:"OS",t:"980881417",c:"dime_355@anin.gob.pe"},
+        {n:"RAMIREZ RODRIGUEZ HELEN ESTEFANI",p:"ASISTENTE EN COSTOS/DC",m:"OS",t:"940340630",c:"dime_148@anin.gob.pe"},
+        {n:"ROMERO SILVA CHRISTHIAN DAVID",p:"ESPECIALISTA PLANNER",m:"OS",t:"950950280",c:"dime_147@anin.gob.pe"},
+        {n:"SALAS HUAMAN KEIKO PAOLA",p:"ANALISTA PLANNER",m:"OS",t:"961337611",c:"dime_359@anin.gob.pe"},
+        {n:"TORRES CUMPA LILIAN ESTHER",p:"GESTOR DE OBRA",m:"OS",t:"949596972",c:"dime_512@anin.gob.pe"},
+        {n:"VILCHEZ NAVARRO ANGEL OMAR",p:"ESPECIALISTA EN COSTOS Y PRESUPUESTOS",m:"OS",t:"956753130",c:"dime_840@anin.gob.pe"},
+        {n:"ESPINOZA ROBLES GUSTAVO ADOLFO",p:"ESPECIALISTA EN ADMINISTRACION DE CONTRATOS",m:"CAS",t:"996598468",c:"gespinoza@anin.gob.pe"},
+        {n:"LEIVA PINILLOS ARTURO JONNATHAN",p:"ESPECIALISTA EN ADMINISTRACION DE CONTRATOS",m:"CAS",t:"948465000",c:"aleiva@anin.gob.pe"},
+        {n:"LOPEZ LUNA CELSO ESTEBAN",p:"GERENTE DE PROYECTO",m:"CAS",t:"998990722",c:"clopez@anin.gob.pe"},
+        {n:"VILA INOCENTE LUIS ANTONIO",p:"ESPECIALISTA EN COSTOS",m:"CAS",t:"969829287",c:"lvila@anin.gob.pe"},
+      ],
+      "07 - PIURA": [
+        {n:"USQUIANO SOTELO SALVADOR FELIX MARTIN",p:"GERENTE DE PROYECTO (E)",m:"CAS",t:"934887876",c:"susquiano@anin.gob.pe"},
+        {n:"MARTINEZ UBILLUS GERALDINE",p:"ASISTENTE EN CIERRE COMERCIAL",m:"OS",t:"963786220",c:"dime_351@anin.gob.pe"},
+        {n:"AQUINO LACHIRA JOSE MIGUEL",p:"ESPECIALISTA EN COSTOS Y PRESUPUESTOS",m:"OS",t:"988007458",c:"dime_163@anin.gob.pe"},
+        {n:"GARCIA CALLE BECKY ULIANA",p:"ESPECIALISTA EN RIESGOS",m:"OS",t:"969936637",c:"dime_922@anin.gob.pe"},
+        {n:"OTERO HUANCA MAX ANTONIO",p:"ESPECIALISTA PLANNER",m:"OS",t:"943789561",c:"dime_414@anin.gob.pe"},
+        {n:"ZETA REYES RAQUEL MARLY",p:"CIERRE COMERCIAL",m:"OS",t:"903067708",c:"dime_837@anin.gob.pe"},
+        {n:"WILLIS CASTAÑEDA ITAMAR KEVIN DIXSON",p:"ESPECIALISTA BIM",m:"OS",t:"993768301",c:"dime_832@anin.gob.pe"},
+        {n:"OSKAR  MARTÍN FRIAS GUERRERO",p:"ARQUICTURA",m:"OS",t:"968437534",c:"dime_843@anin.gob.pe"},
+        {n:"DEL AGUILA RIOS ALFREDO",p:"ACONEX",m:"OS",t:"984216463",c:"dime_327@anin.gob.pe"},
+        {n:"OTERO RODRIGUEZ MANUEL EMILIO",p:"ESPECIALISTA EN COMISIONAMIENTO",m:"OS",t:"986256168",c:"dime_166@anin.gob.pe"},
+        {n:"ESPINOZA PALACIOS ROSA MERCEDES",p:"DOCUMENT CONTROL",m:"OS",t:"963262310",c:"dime_216@anin.gob.pe"},
+      ],
+      "08 - LIMA": [
+        {n:"DIAZ SIMEÓN ERICK ARTURO",p:"LIQUIDACIONES FINANCIERAS",m:"OS",t:"922436865",c:"dime_1118@anin.gob.pe"},
+        {n:"ENCALADA PEÑA ABEL ROMARIO",p:"ESPECIALISTA EN ARQUITECTURA",m:"OS",t:"960664772",c:"dime_476@anin.gob.pe"},
+        {n:"GONZALES GONZALES FRANCISCO",p:"ANALISTA EN COSTOS Y PRESUPUESTOS",m:"OS",t:"992896968",c:"dime_861@anin.gob.pe"},
+        {n:"CORDERO CHAUPIS ARMANDO STEVEN",p:"LIQUIDACIONES FINANCIERAS",m:"OS",t:"997505801",c:"dime_1119@anin.gob.pe"},
+        {n:"CHAVARRÍA SALAZAR MIGUEL",p:"ESPECIALISTA RIESGOS",m:"OS",t:"985723258",c:"dime_1074@anin.gob.pe"},
+        {n:"LUYO CARBONERO PABLO MILTON",p:"ESPECIALISTA PLANNER",m:"OS",t:"985047134",c:"dime_924@anin.gob.pe"},
+        {n:"SEQUEIROS ABARCA ROMINA ALEXANDRA",p:"ESPECIALISTA EN COMISIONAMIENTO",m:"OS",t:"951669151",c:"dime_979@anin.gob.pe"},
+        {n:"TORRES QUISPE GABRIELA MARITZA",p:"AUDITOR DE COSTOS",m:"OS",t:"966507096",c:"dime_170@anin.gob.pe"},
+        {n:"VENTOCILLA COTRINA LESLY MELISSA",p:"DOCUMENT CONTROL",m:"OS",t:"944452958",c:"dime_1039@anin.gob.pe"},
+        {n:"ASTO CONTRERAS EDUAR HIVAN",p:"ESPECIALISTA EN COSTOS Y PRESUPUESTOS",m:"OS",t:"944927228",c:"dime_862@anin.gob.pe"},
+        {n:"ERNESTO ALONSO LOPEZ RIOS",p:"GERENTE DE PROYECTO",m:"CAS",t:"991 348 662",c:"ealopez@anin.gob.pe"},
+      ],
+      "10 - PIURA": [
+        {n:"USQUIANO SOTELO SALVADOR FELIX MARTIN",p:"GERENTE DE PROYECTO (E)",m:"CAS",t:"934887876",c:"susquiano@anin.gob.pe"},
+        {n:"BECERRA CUBAS CARLOS RAUL",p:"ESPECIALISTA CIERRE COMERCIAL (DEFECTOS)",m:"OS",t:"966168336",c:"dime_626@anin.gob.pe"},
+        {n:"CARRASCO MORETO FELIPA",p:"AUDITOR CONTABLE",m:"OS",t:"930191226",c:"dime_619@anin.gob.pe"},
+        {n:"JIMENEZ MERINO MARIA TERESA",p:"ADMINISTRATIVA",m:"OS",t:"969972079",c:"dime_842@anin.gob.pe"},
+        {n:"QUESQUEN CHANCAFE CARLOS ALBERTO",p:"ESPECIALISTA EN COSTOS Y PRESUPUESTOS",m:"OS",t:"978183588",c:"dime_521@anin.gob.pe"},
+      ],
+      "11 - PIURA": [
+        {n:"USQUIANO SOTELO SALVADOR FELIX MARTIN",p:"GERENTE DE PROYECTO (E)",m:"CAS",t:"934887876",c:"susquiano@anin.gob.pe"},
+        {n:"ROSARIO DE MARIA MACHADO ALBURQUEQUE",p:"PLANEAMIENTO",m:"OS",t:"947462080",c:"dime_505@anin.gob.pe"},
+        {n:"LLUEN SAAVEDRA KAREN MIRELLA",p:"AUDITOR CONTABLE",m:"OS",t:"937407911",c:"dime_562@anin.gob.pe"},
+      ],
+    }
+  },
+  "SAL": {
+    label: "Salud",
+    projects: {
+      "01 - CHULUCANAS": [
+        {n:"ADRIANZEN CONCHA RUTH VIRGINIA",p:"CONTROL DOCUMENTARIO",m:"CAS",t:"985370132",c:"radrianzen@anin.gob.pe"},
+        {n:"RIVAS MORILLO ELENA ABIGAIL",p:"GERENTE DE PROYECTO",m:"CAS",t:"937 674 122",c:"erivas@anin.gob.pe"},
+        {n:"VILELA SEMINARIO LUIS MIGUEL",p:"ESPECIALISTA EN CIERRE COMERCIAL",m:"OS",t:"958718423",c:"dime_228@anin.gob.pe"},
+        {n:"NAVARRO SANTOS LUIS ALBERTO",p:"ESPECIALISTA EN COSTOS Y PRESUPUESTOS",m:"OS",t:"937499292",c:"dime_229@anin.gob.pe"},
+        {n:"RUESTA HIDALGO MARIELLA FABIOLA",p:"ESPECIALISTA EN CIERRE COMERCIAL",m:"OS",t:"996 289 283",c:"dime_560@anin.gob.pe"},
+      ],
+      "02 - POMABAMBA": [
+        {n:"MARTEL CLEMENTE AIDA GRISELA",p:"ESPECIALISTA EN ADMINISTRACIÓN DE CONTRATOS",m:"CAS",t:"986824838",c:"amartel@anin.gob.pe"},
+        {n:"PAUCAR MEJIA MAGNO ESTEBAN",p:"GERENTE DE PROYECTO",m:"CAS",t:"944849990",c:"mpaucarm@anin.gob.pe"},
+        {n:"QUIÑONES FERRO JUDITH CARMEN",p:"CONTROL DOCUMENTARIO",m:"CAS",t:"921517155",c:"jquinones@anin.gob.pe"},
+        {n:"CAMACHO LUNA RAUL HILARION",p:"ESPECIALISTA EN INGENIERÍA MECÁNICA",m:"OS",t:"966246544",c:"dime_1041@anin.gob.pe"},
+        {n:"NAPAICO CERRON EDDY NILTON",p:"ESPECIALISTA GESTOR DE OBRA",m:"OS",t:"961465950",c:"dime_211@anin.gob.pe"},
+        {n:"LEON ANGOMA CARLOS ENRIQUE",p:"ESPECIALISTA EN INSTALACIONES ELÉCTRICAS",m:"OS",t:"956618155",c:"dime_665@anin.gob.pe"},
+        {n:"LOPEZ PALOMINO PEDRO ALEJANDRO",p:"ESPECIALISTA EN PLANEAMIENTO Y RIESGO",m:"OS",t:"972564655",c:"dime_246@anin.gob.pe"},
+        {n:"PADILLA SAGARVINAGA ELIZABETH SUSANA",p:"ESPECIALISTA EN OBRAS CIVILES",m:"OS",t:"920061217",c:"dime_249@anin.gob.pe"},
+        {n:"YULY MAGALY FERNANDEZ FELIX",p:"LIQUIDACION FINANCIERA",m:"OS",t:"951451007",c:"dime_1086@anin.gob.pe"},
+        {n:"GIAN FRANCO AYUQUE QUISPE",p:"BIM",m:"OS",t:"958660510",c:"dime_618@anin.gob.pe"},
+        {n:"CAJAHUAMAN PAUCAR RICHARD LUIS",p:"ESPECIALISTA ESTRUCTURAL",m:"OS",t:"962095715",c:"dime_1109@anin.gob.pe"},
+        {n:"PACUSH BORJA FRANCO GRABIEL",p:"ESPECIALISTA EN INSTALACIONES SANITARIAS",m:"OS",t:"943009865",c:"dime_378@anin.gob.pe"},
+      ],
+      "02 - YUNGAY": [
+        {n:"ALTAMIRANO PONCE ELIZABETH PATRICIA",p:"ESPECIALISTA EN ADMINISTRACIÓN DE CONTRATOS",m:"CAS",t:"917563661",c:"ealtamirano@anin.gob.pe"},
+        {n:"IRMA VICTORIA APARICIO MENACHO",p:"COSTOS",m:"OS",t:"935602655",c:"dime_887@anin.gob.pe"},
+        {n:"CORDOVA CRUZ EDGAR ALFREDO",p:"ESPECIALISTA EN LIQUIDACIONES FINANCIERAS",m:"OS",t:"961833794",c:"dime_779@anin.gob.pe"},
+        {n:"JESUS CHILON ALEJANDRO",p:"ESPECIALISTA BIM",m:"OS",t:"965330414",c:"dime_533@anin.gob.pe"},
+        {n:"CONTRERAS CARO WENDY BRIGITTE",p:"CONTROL DOCUMENTARIO",m:"CAS",t:"955737956",c:"wcontreras@anin.gob.pe"},
+        {n:"NANFUÑAY BARRAGAN JOSE LUIS",p:"GERENTE DE PROYECTO",m:"CAS",t:"970958681",c:"jnanfunay@anin.gob.pe"},
+      ],
+      "03 - FAIQUE - CASTILLA": [
+        {n:"RIVAS MORILLO ELENA ABIGAIL",p:"GERENTE DE PROYECTO",m:"CAS",t:"937 674 122",c:"erivas@anin.gob.pe"},
+        {n:"GASTELO PEREZ MOISES",p:"CONTROL DOCUMENTARIO",m:"CAS",t:"978 609 058",c:"mgastelo@anin.gob.pe"},
+        {n:"MENDOZA VALDIVIEZO YURIT",p:"ESPECIALISTA EN COSTOS",m:"CAS",t:"968403933",c:"ymendoza@anin.gob.pe"},
+        {n:"OLIVARES SANCHEZ ALICIA NATALI",p:"CONTROL DOCUMENTARIO",m:"CAS",t:"940225684",c:"aolivares@anin.gob.pe"},
+        {n:"RIVAS PARRAGUEZ JOSE MARTIN",p:"ESPECIALISTA EN COSTOS",m:"CAS",t:"948404687",c:"jrivas@anin.gob.pe"},
+        {n:"SANCHEZ VASQUEZ ERNESTO ALONSO",p:"ESPECIALISTA EN COSTOS",m:"CAS",t:"969433005",c:"esanchez@anin.gob.pe"},
+      ],
+      "06 - SULLANA": [
+        {n:"RIVAS MORILLO ELENA ABIGAIL",p:"GERENTE DE PROYECTO",m:"CAS",t:"937 674 122",c:"erivas@anin.gob.pe"},
+        {n:"LADY GUIANELLA AGURTO CORDOVA",p:"APOYO ADMINISTRADOR DE CONTRATOS",m:"OS",t:"936 956 555",c:"dime_1062@anin.gob.pe"},
+        {n:"LOPEZ FERNANDEZ ENRIQUE DE JESUS",p:"ESPECIALISTA EN COSTOS",m:"CAS",t:"967696452",c:"elopez@anin.gob.pe"},
+        {n:"MAZA SOCOLA JESSICA PAOLA",p:"ESPECIALISTA EN PLANEAMIENTO",m:"CAS",t:"945113328",c:"jmaza@anin.gob.pe"},
+        {n:"VEGAS LOPEZ ESTEFANIA",p:"CONTROL DOCUMENTARIO",m:"CAS",t:"968554808",c:"evegas@anin.gob.pe"},
+      ],
+      "07 - CASMA": [
+        {n:"JUAREZ VASQUEZ JOSE EDUARDO",p:"ESPECIALISTA EN PLANEAMIENTO",m:"CAS",t:"974417831",c:"jjuarez@anin.gob.pe"},
+        {n:"VASQUEZ CARRILLO ANGEL ISAI",p:"ESPECIALISTA EN COSTOS",m:"CAS",t:"943613445",c:"avasquez@anin.gob.pe"},
+        {n:"YABAR MAR TEOFILO AUGUSTO",p:"ADMINISTRADOR DE CONTRATOS",m:"CAS",t:"940230767",c:"tyabar@anin.gob.pe"},
+        {n:"GAVANCHO PASION PEDRO FABRIZIO",p:"COSTOS Y PLANEAMIENTO",m:"OS",t:"937562693",c:"dime_638@anin.gob.pe"},
+        {n:"GAMBINI CACERES EDUARDO MARCIO",p:"ESPECIALISTA EN EQUIPAMIENTO HOSPITALARIO",m:"OS",t:"953003727",c:"dime_685@anin.gob.pe"},
+        {n:"GUTIERREZ MORALES VLADIMIR",p:"ESPECIALISTA TIC",m:"OS",t:"958066366",c:"dime_570@anin.gob.pe"},
+        {n:"RODRÍGUEZ MELQUIADES YAJAIRA LIZETH",p:"ADMISNITRATIVO",m:"OS",t:"974677478",c:"dime_1096@anin.gob.pe"},
+        {n:"RAMIREZ AMASIFUEN PAOLA",p:"ESPECIALISTA EN ARQUITECTURA HOSPITALARIA",m:"OS",t:"944668450",c:"dime_822@anin.gob.pe"},
+      ],
+      "07 - RECUAY": [
+        {n:"DOLORES ANAYA DANTE",p:"ESPECIALISTA EN COSTOS",m:"CAS",t:"943645573",c:"ddolores@anin.gob.pe"},
+        {n:"RIVERA BARBA CESAR ANIBAL MARTIN",p:"ESPECIALISTA EN ADMINISTRACIÓN DE CONTRATOS",m:"CAS",t:"992561118",c:"crivera@anin.gob.pe"},
+        {n:"CASTRO CASTILLO LYZ SOLEDAD",p:"ESPECIALISTA EN CIERRE COMERCIAL",m:"OS",t:"991137789",c:"dime_443@anin.gob.pe"},
+        {n:"CHAVEZ VELASQUEZ KENYI JUAN",p:"ESPECIALISTA EN GESTIÓN SOCIAL",m:"OS",t:"959676953",c:"dime_636@anin.gob.pe"},
+        {n:"DIAZ CARRANZA JESUS ALBERTO",p:"ESPECIALISTA EN INSTALACIONES ELECTRICAS Y MECANICAS",m:"OS",t:"992097068",c:"dime_673@anin.gob.pe"},
+        {n:"GARAY HUAMAN LARISA INDIRA",p:"ESPECIALISTA PLANNER",m:"OS",t:"943929931",c:"dime_835@anin.gob.pe"},
+        {n:"GONZALO GUILLEN YURY RITA",p:"CONTROL DOCUMENTARIO",m:"OS",t:"938324482",c:"dime_315@anin.gob.pe"},
+        {n:"MARTINEZ RAMIREZ ESTHEFANY PAMELA",p:"ASISTENTE DE RIESGO Y GESTION BIM",m:"OS",t:"935640684",c:"dime_261@anin.gob.pe"},
+      ],
+      "08 - CARAZ": [
+        {n:"APAZA MEDINA ENGLER",p:"ESPECIALISTA EN ADMINISTRACIÓN DE CONTRATOS",m:"CAS",t:"974343052",c:"eapaza@anin.gob.pe"},
+        {n:"BALBUENA MONZON VICTOR MANUEL",p:"GERENTE DE PROYECTO",m:"CAS",t:"962878250",c:"vbalbuena@anin.gob.pe"},
+        {n:"MAMANI CHAMBILLA DIANI YINET",p:"CONTROL DOCUMENTARIO",m:"CAS",t:"939390240",c:"dmamani@anin.gob.pe"},
+        {n:"GUZMAN VALVERDE ELIANA PATRICIA",p:"CIERRE COMERCIAL",m:"OS",t:"944 916 915",c:"dime_1101@anin.gob.pe"},
+        {n:"RICHARD AMADEO SOTO EVANGELISTA",p:"ESPECIALISTA EN INSTALACIONES ELÉCTRICAS",m:"OS",t:"944948375",c:"dime_1063@anin.gob.pe"},
+        {n:"BALLENA TAPIA CHRYSTIAN JOSE",p:"ESPECIALISTA EN ESTRUCTURAS",m:"OS",t:"979955777",c:"dime_1037@anin.gob.pe"},
+        {n:"LOPEZ CAPA MISHELLE STHEFANI",p:"ESPECIALISTA EN ARQUITECTURA HOSPITALARIA",m:"OS",t:"947395070",c:"dime_916@anin.gob.pe"},
+        {n:"SANTILLAN ESPEJO JAVIER ALFONSO",p:"ESPECIALISTA PLANNER",m:"OS",t:"933607461",c:"dime_644@anin.gob.pe"},
+      ],
+      "08 - CASCAS": [
+        {n:"LA ROSA BERNAL ALBERTO",p:"GERENTE DE PROYECTO",m:"CAS",t:"987811631",c:"alarosa@anin.gob.pe"},
+        {n:"GUEVARA DONGO IRMA ISOLINA",p:"ESPECIALISTA EN COSTOS",m:"CAS",t:"945197777",c:"iguevara@anin.gob.pe"},
+        {n:"LEON VASQUEZ JAVIER RUBEN",p:"ESPECIALISTA EN CIERRE COMERCIAL",m:"CAS",t:"944039818",c:"jleon@anin.gob.pe"},
+        {n:"PALOMINO CUEVAS KATHERINE JENIFFER",p:"CONTROL DOCUMENTARIO",m:"CAS",t:"978190915",c:"kpalomino@anin.gob.pe"},
+        {n:"BECERRA ALMEIDA JULIO ROSAS",p:"ESPECIALISTA EN INGENIERIA CIVIL",m:"OS",t:"957970910",c:"dime_251@anin.gob.pe"},
+        {n:"ELIAS YARLEQUE KARINA CARLA",p:"ESPECIALISTA EN ARQUITECTURA HOSPITALARIA",m:"OS",t:"949880953",c:"dime_616@anin.gob.pe"},
+        {n:"MARTINEZ CHANG JUAN JOSE RAMON",p:"ESPECIALISTA EN INSTALACIONES MECANICAS Y ELECTRICAS",m:"OS",t:"980 948 024",c:"dime_729@anin.gob.pe"},
+        {n:"HUERTA SOLIS NELSON FERNANDO",p:"ESPECIALISTA PLANNER",m:"OS",t:"958465991",c:"dime_547@anin.gob.pe"},
+        {n:"RAMOS CACERES FRANZ EDSON",p:"ESPECIALISTA BIM",m:"OS",t:"921219141",c:"dime_992@anin.gob.pe"},
+      ],
+      "08 - SAN NICOLAS": [
+        {n:"BALBUENA MONZON VICTOR MANUEL",p:"GERENTE DE PROYECTO",m:"CAS",t:"962878250",c:"vbalbuena@anin.gob.pe"},
+        {n:"BANCES SANDOVAL ANGEL ROBERTO",p:"CONTROL DOCUMENTARIO",m:"CAS",t:"978190915",c:"abances@anin.gob.pe"},
+        {n:"MONTALVO PEÑA NELSON ALEXANDER",p:"ESPECIALISTA EN ADMINISTRACIÓN DE CONTRATOS",m:"CAS",t:"959079669",c:"nmontalvo@anin.gob.pe"},
+        {n:"ANAYA RUIZ MARIBEL JUDITH",p:"ASISTENTE EN COSTOS Y PRESUPUESTOS",m:"OS",t:"969443688",c:"dime_998@anin.gob.pe"},
+        {n:"CAMPOS PEÑA ALEXIS",p:"ESPECIALISTA EN ESTRUCTURAS",m:"OS",t:"948311128",c:"dime_532@anin.gob.pe"},
+        {n:"PRIETO MARRERO WILLIE JUNIOR",p:"ESPECIALISTA EN COSTOS Y PRESUPUESTOS",m:"OS",t:"948421328",c:"dime_1009@anin.gob.pe"},
+        {n:"JULIO ALBERTO VILLON MARILUZ",p:"DISEÑO DE SISTEMA DE COMUNICACIONES",m:"OS",t:"940174874",c:"dime_553@anin.gob.pe"},
+      ],
+      "09 - MATUCANA": [
+        {n:"BAUTISTA ROJAS JASMIN NANCY",p:"CONTROL DOCUMENTARIO",m:"CAS",t:"956007513",c:"jbautista@anin.gob.pe"},
+        {n:"JUGO QUIÑONES JORGE OMAR",p:"GERENTE DE PROYECTO",m:"CAS",t:"958335651",c:"jjugo@anin.gob.pe"},
+        {n:"MARTINEZ HUAMAN IRIS JANNET",p:"ESPECIALISTA EN ADMINISTRACIÓN DE CONTRATOS",m:"OS",t:"964248469",c:"dime_613@anin.gob.pe"},
+        {n:"LUIS ALBERTO MEDINA REYNA",p:"CIERRE COMERCIAL",m:"OS",t:"932345802",c:"dime_548@anin.gob.pe"},
+        {n:"PAREDES ARTEAGA MARIA VICTORIA",p:"COSTOS Y PRESUPUESTO",m:"OS",t:"932345802",c:"dime_210@anin.gob.pe"},
+      ],
+      "PEC - REQUE": [
+        {n:"ESPINOZA MILLONES FRANCISCO MAURI",p:"GERENTE DE PROYECTO",m:"CAS",t:"977779823",c:"fespinoza@anin.gob.pe"},
+      ],
+    }
+  },
+};
+
+function tc(s){
+  if(!s)return'';
+  const ex=new Set(['de','del','la','las','los','el','en','y','a','con','por','para','al','e']);
+  return s.toLowerCase().split(' ').map((w,i)=>(!i||!ex.has(w))?w.charAt(0).toUpperCase()+w.slice(1):w).join(' ');
+}
+function isGerente(p){ return /gerente\s*(de\s*)?proyecto/i.test(p); }
+
+let curSector=null, curProj=null;
+
+function setSector(s){
+  curSector=s; curProj=null;
+  document.querySelectorAll('.sector-btn').forEach(b=>b.className='sector-btn');
+  const cls=s==='SI'?'active-si':s==='EDU'?'active-edu':'active-sal';
+  document.getElementById('btn-'+s).classList.add(cls);
+  renderProjBar(); renderMain();
+}
+
+function renderProjBar(){
+  const bar=document.getElementById('proj-bar');
+  bar.innerHTML='';
+  if(!curSector)return;
+  Object.keys(DATA[curSector].projects).forEach(p=>{
+    const btn=document.createElement('button');
+    btn.className='proj-pill'+(p===curProj?' active':'');
+    btn.textContent=p;
+    btn.onclick=()=>{curProj=p;renderProjBar();renderMain();};
+    bar.appendChild(btn);
+  });
+}
+
+function renderMain(){
+  const main=document.getElementById('main');
+  if(!curProj||!curSector){
+    main.innerHTML='<div class="placeholder"><p>Selecciona un sector y luego un proyecto</p></div>';
+    return;
+  }
+  const members=DATA[curSector].projects[curProj];
+  const gerenteRec=members.find(m=>isGerente(m.p));
+  const rest=members.filter(m=>!isGerente(m.p));
+  const totalCas=members.filter(m=>m.m==='CAS').length;
+  const totalOs=members.filter(m=>m.m==='OS').length;
+  const isEnc=gerenteRec&&/\(E\)/i.test(gerenteRec.p);
+  const isVacant=!gerenteRec||!gerenteRec.n;
+
+  let gerenteHTML='';
+  if(gerenteRec){
+    const cls=isVacant?'vacant':isEnc?'encargado':'gerente';
+    gerenteHTML=`<div class="top-node ${cls}">
+      <div class="role-label">${tc(gerenteRec.p)}</div>
+      <div class="full-name">${isVacant?'Vacante':tc(gerenteRec.n)}</div>
+      ${!isVacant&&gerenteRec.t?`<div class="contact-row">${iP}&nbsp;${gerenteRec.t}</div>`:''}
+      ${!isVacant&&gerenteRec.c?`<div class="contact-row">${iM}&nbsp;${gerenteRec.c}</div>`:''}
+    </div>`;
+  }
+
+  const cols=rest.length<=2?rest.length:rest.length<=6?3:rest.length<=12?4:5;
+  const teamHTML=rest.length>0?`
+    <div class="vline"></div>
+    <div class="team-grid" style="grid-template-columns:repeat(${cols},186px)">
+      ${rest.map(m=>`
+        <div style="display:flex;flex-direction:column;align-items:center">
+          <div style="width:1px;height:14px;background:#d1d5db"></div>
+          <div class="member-card">
+            <div class="mc-name">${tc(m.n)}</div>
+            <div class="mc-role">${m.p}</div>
+            <span class="mc-badge ${m.m.toLowerCase()}">${m.m}</span>
+            ${(m.t||m.c)?`<div class="mc-contact">
+              ${m.t?`<div class="mc-cline">${iP}&nbsp;${m.t}</div>`:''}
+              ${m.c?`<div class="mc-cline">${iM}&nbsp;${m.c}</div>`:''}
+            </div>`:''}
+          </div>
+        </div>`).join('')}
+    </div>`:''
+
+  main.innerHTML=`
+    <div class="proj-header">
+      <h2>${curProj}</h2>
+      <div class="meta">
+        <span>👥 ${members.length} miembros</span>
+        <span style="color:#15803d">● ${totalCas} CAS</span>
+        <span style="color:#6b7280">● ${totalOs} OS</span>
+        <span style="color:#6b7280">Sector: ${DATA[curSector].label}</span>
+      </div>
+    </div>
+    <div class="org-tree">
+      ${gerenteHTML}
+      ${teamHTML}
+    </div>
+    <div class="legend">
+      <div class="legend-item"><span class="mc-badge cas">CAS</span> Contrato Administrativo de Servicios</div>
+      <div class="legend-item"><span class="mc-badge os">OS</span> Orden de Servicio</div>
+      <div class="legend-item" style="color:#b45309">■ (E) Encargado</div>
+    </div>`;
+}
+</script>
+</body>
+</html>
